@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 option(NEYN_BUILD_LIB "Build Neyn C Library" OFF)
-add_subdirectory(CNeyn)
+add_subdirectory(cneyn)
 
 project(Neynxx VERSION ${NEYN_VERSION} LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 11)
