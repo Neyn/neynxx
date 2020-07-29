@@ -33,7 +33,6 @@ void handler(neyn_request *_request, neyn_output *output, void *data)
     }
 
     Response response;
-    response.status = Status::OK;
     // clang-format off
     try { server.handler(request, response); }
     catch (Status status) { response.status = status; }

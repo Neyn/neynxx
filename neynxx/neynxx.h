@@ -117,7 +117,7 @@ struct Request
 
 struct Response
 {
-    Status status;
+    Status status = Status::OK;
     std::string body;
     std::map<std::string, std::string> header;
 };
