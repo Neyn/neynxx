@@ -3,7 +3,7 @@
 #include <thread>
 
 extern "C" {
-#include "src/cneyn"
+#include "src/cneyn.h"
 }
 
 namespace Neyn

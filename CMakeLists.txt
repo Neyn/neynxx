@@ -20,7 +20,7 @@ option(NEYN_BUILD_TESTS "Build Neyn C++ Tests" ${NEYN_MASTER})
 option(NEYN_INSTALL_LIB "Install Neyn C++ Library" ${NEYN_MASTER})
 
 file(GLOB HEADERS
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/neyn"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/neyn.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/server.h"
     "${CMAKE_CURRENT_BINARY_DIR}/config.h")
 file(GLOB SOURCES
