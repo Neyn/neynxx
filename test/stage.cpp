@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "src/neyn.h"
+#include "neyn/neyn.h"
 
 using namespace std;
 using namespace Neyn;
