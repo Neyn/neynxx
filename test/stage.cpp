@@ -1,6 +1,6 @@
-#include <iostream>
+#include <neyn/neyn.h>
 
-#include "neyn/neyn.h"
+#include <iostream>
 
 using namespace std;
 using namespace Neyn;
@@ -10,8 +10,8 @@ void handler(Request &request, Response &response) { response.body = "Hello"; }
 int main()
 {
     Server server;
-    server.config.threads = 1;
     server.handler = handler;
-    server.run();
+    auto error = server.run();
+    cout << int(error) << endl;
     return 0;
 }

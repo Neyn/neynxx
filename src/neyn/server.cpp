@@ -3,83 +3,87 @@
 #include <thread>
 
 extern "C" {
-#include "cneyn/cneyn.h"
+#include <cneyn/cneyn.h>
 }
 
 namespace Neyn
 {
-void handler(neyn_request *_request, neyn_output *output, void *data)
+void handler(neyn_request *_request, neyn_response *_response, void *data)
 {
     size_t i = 0;
-    auto &server = *static_cast<Server *>(data);
+    auto server = static_cast<Server *>(data);
 
     Request request;
     request.port = _request->port;
     request.major = _request->major;
     request.minor = _request->minor;
-    request.method.assign(_request->method_ptr, _request->method_len);
-    request.path.assign(_request->path_ptr, _request->path_len);
-    request.body.assign(_request->body_ptr, _request->body_len);
+    request.method.assign(_request->method.ptr, _request->method.len);
+    request.path.assign(_request->path.ptr, _request->path.len);
+    request.body.assign(_request->body.ptr, _request->body.len);
     request.address.assign(_request->address);
 
     std::string name, value;
-    for (; i < _request->header_len; ++i)
+    for (; i < _request->header.len; ++i)
     {
-        neyn_header *header = &_request->header_ptr[i];
-        name.assign(header->name_ptr, header->name_len);
-        value.assign(header->value_ptr, header->value_len);
+        neyn_header *header = &_request->header.ptr[i];
+        name.assign(header->name.ptr, header->name.len);
+        value.assign(header->value.ptr, header->value.len);
         auto &_value = request.header[name];
         _value += _value.empty() ? value : "," + value;
     }
 
     Response response;
     // clang-format off
-    try { server.handler(request, response); }
+    try { server->handler(request, response); }
     catch (Status status) { response.status = status; }
     // clang-format on
 
-    neyn_response _response;
-    neyn_response_init(&_response);
-    _response.status = neyn_status(response.status);
-    _response.body_ptr = (char *)response.body.data();
-    _response.body_len = response.body.size();
-    if (!response.body.empty()) response.header["Content-Length"] = std::to_string(response.body.size());
+    _response->status = neyn_status(response.status);
+    _response->body.ptr = (char *)response.body.data();
+    _response->body.len = response.body.size();
 
     i = 0;
     neyn_header header[response.header.size()];
     for (const auto &pair : response.header)
     {
-        header[i].name_ptr = (char *)pair.first.data();
-        header[i].name_len = pair.first.size();
-        header[i].value_ptr = (char *)pair.second.data();
-        header[i++].value_len = pair.second.size();
+        header[i].name.ptr = (char *)pair.first.data();
+        header[i].name.len = pair.first.size();
+        header[i].value.ptr = (char *)pair.second.data();
+        header[i++].value.len = pair.second.size();
     }
 
-    _response.header_ptr = header;
-    _response.header_len = response.header.size();
-    neyn_response_write(&_response, output);
+    _response->header.ptr = header;
+    _response->header.len = response.header.size();
+    neyn_response_write(_response);
 }
 
-Config::Config(uint16_t port, std::string address, size_t timeout, size_t limit, size_t threads)
-    : port(port), address(address), timeout(timeout), limit(limit), threads(threads)
-{
-}
+Server::Server(Handler handler, Config config) : data(nullptr), config(std::move(config)), handler(handler) {}
 
-Server::Server(Handler handler, Config config) : config(std::move(config)), handler(handler) {}
-
-Error Server::run()
+Error Server::run(bool block)
 {
     if (config.threads == 0) config.threads = std::thread::hardware_concurrency();
+    auto server = new neyn_server;
+    data = server;
+    server->data = this;
+    server->handler = Neyn::handler;
 
-    neyn_server server;
-    server.data = this;
-    server.port = config.port;
-    server.address = (char *)config.address.c_str();
-    server.timeout = config.timeout;
-    server.limit = config.limit;
-    server.handler = Neyn::handler;
-    server.threads = config.threads;
-    return Error(neyn_server_run(&server));
+    server->config.ipvn = neyn_address(config.ipvn);
+    server->config.port = config.port;
+    server->config.address = (char *)config.address.data();
+    server->config.timeout = config.timeout;
+    server->config.limit = config.limit;
+    server->config.threads = config.threads;
+
+    auto error = Error(neyn_server_run(server, block));
+    if (block || error != Error::None) delete server;
+    return error;
+}
+
+void Server::kill()
+{
+    auto server = static_cast<neyn_server *>(data);
+    neyn_server_kill(server);
+    delete server;
 }
 
 std::string ws = "    ";

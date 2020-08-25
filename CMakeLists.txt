@@ -12,33 +12,37 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 endif()
 
 set(NEYN_VERSION ${PROJECT_VERSION} CACHE INTERNAL "")
-set(NEYN_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/" CACHE INTERNAL "")
 set(NEYN_LIBRARIES "neyn" CACHE INTERNAL "")
+set(NEYN_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/"
+    "${CMAKE_CURRENT_BINARY_DIR}/gen/" CACHE INTERNAL "")
+
 option(NEYN_BUILD_LIB "Build Neyn C++ Library" ON)
 option(NEYN_BUILD_TESTS "Build Neyn C++ Tests" ${NEYN_MASTER})
 option(NEYN_INSTALL_LIB "Install Neyn C++ Library" ${NEYN_MASTER})
 
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/neyn/config.h.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/gen/neyn/config.h")
 file(GLOB HEADERS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/neyn/neyn.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/neyn/server.h"
-    "${CMAKE_CURRENT_BINARY_DIR}/config.h")
+    "${CMAKE_CURRENT_BINARY_DIR}/gen/neyn/config.h")
 file(GLOB SOURCES
-    "${CNEYN_INCLUDE_DIR}/cneyn/*.h"
-    "${CNEYN_INCLUDE_DIR}/cneyn/*.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/neyn/*.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/neyn/*.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/neyn/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cneyn/src/cneyn/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cneyn/src/cneyn/*.c")
+
+message("${SOURCES}")
 
 if(NEYN_BUILD_LIB)
     add_library(neyn ${SOURCES})
     target_link_libraries(neyn PUBLIC pthread)
     target_include_directories(neyn PUBLIC
-        $<BUILD_INTERFACE:${CNEYN_INCLUDE_DIR}/>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/>)
-    configure_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/neyn/config.h.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/config.h")
+        "$<BUILD_INTERFACE:${CNEYN_INCLUDE_DIR}/>"
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/>"
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gen/>"
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/>")
 endif()
 
 if(NEYN_INSTALL_LIB)
@@ -54,7 +58,7 @@ if(NEYN_INSTALL_LIB)
         DESTINATION lib/cmake/neyn)
     export(TARGETS neyn
         NAMESPACE neyn::
-        FILE ${PROJECT_BINARY_DIR}/neynConfig.cmake)
+        FILE "${PROJECT_BINARY_DIR}/neynConfig.cmake")
 endif()
 
 if(NEYN_BUILD_TESTS)

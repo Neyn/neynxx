@@ -1,11 +1,11 @@
 #pragma once
 
+#include <neyn/config.h>
+
 #include <functional>
 #include <iostream>
 #include <map>
 #include <string>
-
-#include "config.h"
 
 namespace Neyn
 {
@@ -108,6 +108,12 @@ enum class Status
     NetworkConnectTimeoutError,
 };
 
+enum class Address
+{
+    IPV4,
+    IPV6
+};
+
 struct Request
 {
     uint16_t port, major, minor;
@@ -124,22 +130,23 @@ struct Response
 
 struct Config
 {
-    uint16_t port;
-    std::string address;
-    size_t timeout, limit, threads;
-    inline Config() : port(8080), address("0.0.0.0"), timeout(0), limit(0), threads(0) {}
-    Config(uint16_t port, std::string address, size_t timeout, size_t limit, size_t threads);
+    uint16_t port = 8081;
+    Address ipvn = Address::IPV4;
+    std::string address = "0.0.0.0";
+    size_t timeout = 0, limit = 0, threads = 1;
 };
 
 struct Server
 {
     using Handler = std::function<void(Request &, Response &)>;
 
+    void *data;
     Config config;
     Handler handler;
 
     Server(Handler handler = {}, Config config = {});
-    Error run();
+    Error run(bool block = true);
+    void kill();
 };
 
 std::ostream &operator<<(std::ostream &os, const Config &config);

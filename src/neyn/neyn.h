@@ -1,4 +1,4 @@
 #pragma once
 
-#include "config.h"
-#include "server.h"
+#include <neyn/config.h>
+#include <neyn/server.h>
