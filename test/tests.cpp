@@ -149,15 +149,62 @@ int create()
     }                                                               \
     void name##Test_()
 
-TEST(Simple)
+TEST(Syntax)
 {
-    // TODO test CRLF at start
+    {
+        PROCESS("GET\r\n\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+    {
+        PROCESS("/\r\n\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+    {
+        PROCESS("HTTP/1.1\r\n\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+    {
+        PROCESS("/ HTTP/1.1\r\n\r\n");
+        CHECK(info.code == 501) CHECK(info.body.empty()) CHECK(info.phrase == "Not Implemented");
+    }
+    {
+        PROCESS("GET HTTP/1.1\r\n\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+    {
+        PROCESS("GET /\r\n\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+    {
+        PROCESS("CRAP / HTTP/1.1\r\n\r\n");
+        CHECK(info.code == 501) CHECK(info.body.empty()) CHECK(info.phrase == "Not Implemented");
+    }
+    {
+        PROCESS("\r \nGET / HTTP/1.1\r\n\r\n");
+        CHECK(info.code == 501) CHECK(info.body.empty()) CHECK(info.phrase == "Not Implemented");
+    }
+    {
+        PROCESS("\r\n \r\nGET / HTTP/1.1\r\n\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+    {
+        PROCESS("GET / HTTP/1.1\r\nA :B\r\n\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+    {
+        PROCESS("\r\n\r\n\r\n\r\n\r\nGET / HTTP/1.1\r\n\r\n");
+        CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK")
+    }
+    {
+        PROCESS("   \t \t GET  \t\t   /pathpathpath  \t   \t HTTP/1.1 \t  \t     \t   \r\n\r\n");
+        CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK")
+    }
     {
         PROCESS("GET / HTTP/1.1\r\n\r\n");
         CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK")
     }
     {
-        PROCESS("   \t \t GET  \t\t   /pathpathpath  \t   \t HTTP/1.1 \t  \t     \t   \r\n\r\n");
+        PROCESS("\r\nGET / HTTP/1.1\r\n\r\n");
         CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK")
     }
 }
@@ -221,7 +268,7 @@ int main()
     }
 
     cout << "\033[36mRunning Tests...\033[0m" << endl << endl;
-    SimpleTest();
+    SyntaxTest();
     GetTest();
     PostTest();
     ChunkTest();
