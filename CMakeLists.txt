@@ -64,4 +64,7 @@ endif()
 if(NEYN_BUILD_TESTS)
     add_executable(stage "test/stage.cpp")
     target_link_libraries(stage PUBLIC neyn)
+
+    add_executable(tests "test/tests.cpp")
+    target_link_libraries(tests PUBLIC neyn)
 endif()
