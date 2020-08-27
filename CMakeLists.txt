@@ -33,8 +33,6 @@ file(GLOB SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/cneyn/src/cneyn/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/cneyn/src/cneyn/*.c")
 
-message("${SOURCES}")
-
 if(NEYN_BUILD_LIB)
     add_library(neyn ${SOURCES})
     target_link_libraries(neyn PUBLIC pthread)

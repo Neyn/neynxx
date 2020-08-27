@@ -1,5 +1,7 @@
 #include "server.h"
 
+#include <stdio.h>
+
 #include <thread>
 
 extern "C" {
@@ -39,8 +41,9 @@ void handler(neyn_request *_request, neyn_response *_response, void *data)
     // clang-format on
 
     _response->status = neyn_status(response.status);
-    _response->body.ptr = (char *)response.body.data();
+    _response->file = response.file;
     _response->body.len = response.body.size();
+    _response->body.ptr = (char *)response.body.data();
 
     i = 0;
     neyn_header header[response.header.size()];

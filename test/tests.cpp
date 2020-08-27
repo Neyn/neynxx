@@ -9,13 +9,36 @@
 #include <string>
 #include <thread>
 
-#define CHECK(expr)                                                                                \
-    if (!static_cast<bool>(expr))                                                                  \
-    {                                                                                              \
-        cout << string("\033[35m") + "<" + #expr + "> Failed at Line " + to_string(__LINE__) + "." \
-             << "\033[0m" << endl;                                                                 \
-        throw 0;                                                                                   \
+#define CLEAR "\033[0m"
+#define RED "\033[31m"
+#define GREEN "\033[32m"
+#define SEPARATOR "--------------------" << endl
+
+#define CHECK(expr)                                                                                          \
+    if (!static_cast<bool>(expr))                                                                            \
+    {                                                                                                        \
+        cout << RED << "\"" << #expr << "\" Failed at Line " << to_string(__LINE__) << "!" << CLEAR << endl; \
+        throw 0;                                                                                             \
     }
+
+#define TEST(name)                                                                      \
+    void name##Test_();                                                                 \
+    void name##Test()                                                                   \
+    {                                                                                   \
+        H::Current = #name;                                                             \
+        cout << #name << " Test Started..." << endl;                                    \
+        try                                                                             \
+        {                                                                               \
+            name##Test_();                                                              \
+            cout << GREEN << #name << " Test succeeded!" << CLEAR << endl << SEPARATOR; \
+        }                                                                               \
+        catch (...)                                                                     \
+        {                                                                               \
+            cout << RED << #name << " Test Failed!" << CLEAR << endl << SEPARATOR;      \
+            if (H::Code != 0) H::Code = 1;                                              \
+        }                                                                               \
+    }                                                                                   \
+    void name##Test_()
 
 #define PROCESS(input)          \
     auto fd = H::create();      \
@@ -28,6 +51,7 @@ using namespace std;
 
 namespace H
 {
+int Code = 0;
 string Current;
 
 struct Info
@@ -126,29 +150,6 @@ int create()
 }
 }  // namespace H
 
-#define TEST(name)                                                  \
-    void name##Test_();                                             \
-    void name##Test()                                               \
-    {                                                               \
-        H::Current = #name;                                         \
-        cout << string("\033[33m") + #name + " Test Started..."     \
-             << "\033[0m" << endl;                                  \
-        try                                                         \
-        {                                                           \
-            name##Test_();                                          \
-            cout << string("\033[32m") + #name + " Test succeeded!" \
-                 << "\033[0m" << endl                               \
-                 << endl;                                           \
-        }                                                           \
-        catch (...)                                                 \
-        {                                                           \
-            cout << string("\033[31m") + #name + " Test Failed!"    \
-                 << "\033[0m" << endl                               \
-                 << endl;                                           \
-        }                                                           \
-    }                                                               \
-    void name##Test_()
-
 TEST(Syntax)
 {
     {
@@ -207,6 +208,22 @@ TEST(Syntax)
         PROCESS("\r\nGET / HTTP/1.1\r\n\r\n");
         CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK")
     }
+    {
+        PROCESS("GET / HTTP/1.1111\r\n\r\n");
+        CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK")
+    }
+    {
+        PROCESS("GET / HTTP/1.11111\r\n\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+    {
+        PROCESS("GET / HTTP/2.1\r\n\r\n");
+        CHECK(info.code == 505) CHECK(info.body.empty()) CHECK(info.phrase == "HTTP Version Not Supported");
+    }
+    {
+        PROCESS("GET / HTTP/11111.1\r\n\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
 }
 
 TEST(Get)
@@ -214,12 +231,12 @@ TEST(Get)
     {
         PROCESS("GET / HTTP/1.1\r\n A:B \r\n\r\n");
         CHECK(info.code == 200) CHECK(info.body == "Hello") CHECK(info.phrase == "OK");
-        CHECK(info.header["A"] == "B");
+        CHECK(info.header["A"] == "B") CHECK(info.header["major"] == "1") CHECK(info.header["minor"] == "1");
     }
     {
         PROCESS("GET / HTTP/1.1\r\n A:B \r\n C:D \r\n\r\n")
         CHECK(info.code == 200) CHECK(info.body == "Hello") CHECK(info.phrase == "OK");
-        CHECK(info.header["A"] == "B") CHECK(info.header["C"] == "D");
+        CHECK(info.header["A"] == "B") CHECK(info.header["major"] == "1") CHECK(info.header["minor"] == "1");
     }
 }
 
@@ -246,6 +263,8 @@ void handler(Neyn::Request &request, Neyn::Response &response)
     {
         response.body = "Hello";
         response.header = request.header;
+        response.header["major"] = to_string(request.major);
+        response.header["minor"] = to_string(request.minor);
     }
     else
     {
@@ -263,18 +282,18 @@ int main()
 
     if (error != Neyn::Error::None)
     {
-        cout << "Tests Failed!" << endl;
+        cout << RED << "Tests Failed!" << CLEAR << endl;
         return 1;
     }
 
-    cout << "\033[36mRunning Tests...\033[0m" << endl << endl;
+    cout << SEPARATOR << "Running Tests..." << endl << SEPARATOR;
     SyntaxTest();
     GetTest();
     PostTest();
     ChunkTest();
-    cout << "\033[36mTests Done!\033[0m" << endl;
+    cout << "Tests Done!" << endl << SEPARATOR;
 
     usleep(1000);
     server.kill();
-    return 0;
+    return H::Code;
 }

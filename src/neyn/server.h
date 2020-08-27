@@ -125,6 +125,7 @@ struct Response
 {
     Status status = Status::OK;
     std::string body;
+    FILE *file = NULL;
     std::map<std::string, std::string> header;
 };
 
