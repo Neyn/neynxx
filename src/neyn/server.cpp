@@ -10,7 +10,7 @@ extern "C" {
 
 namespace Neyn
 {
-void handler(neyn_request *_request, neyn_response *_response, void *data)
+void handler(const neyn_request *_request, neyn_response *_response, void *data)
 {
     size_t i = 0;
     auto server = static_cast<Server *>(data);
@@ -57,7 +57,7 @@ void handler(neyn_request *_request, neyn_response *_response, void *data)
 
     _response->header.ptr = header;
     _response->header.len = response.header.size();
-    neyn_response_write(_response);
+    neyn_response_write(_request, _response);
 }
 
 Server::Server(Handler handler, Config config) : data(nullptr), config(std::move(config)), handler(handler) {}

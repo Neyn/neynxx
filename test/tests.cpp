@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include <cstring>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <string>
@@ -44,6 +45,7 @@
     auto fd = H::create();      \
     CHECK(fd >= 0);             \
     CHECK(H::write(fd, input)); \
+    /*shutdown(fd, SHUT_WR);*/  \
     auto data = H::read(fd);    \
     auto info = H::parse(data);
 
@@ -63,25 +65,12 @@ struct Info
 
 string read(int fd)
 {
-    // TODO change to when socket closes.
     string data, temp(1000, 0);
-    while (data.find("\r\n\r\n") == string::npos)
+    while (true)
     {
         auto bytes = ::read(fd, &temp[0], temp.size());
-        if (bytes < 0) return string();
+        if (bytes <= 0) break;
         data.append(temp.substr(0, bytes));
-    }
-
-    auto prev = data.size(), head = data.find("\r\n\r\n") + 4;
-    auto it = data.find("Content-Length") + string("Content-Length").size() + 2;
-    auto body = strtoul(data.data() + it, NULL, 10);
-
-    data.resize(head + body);
-    for (size_t i = prev; i < head + body;)
-    {
-        auto bytes = ::read(fd, &data[0] + i, head + body - i);
-        if (bytes < 0) return string();
-        i += bytes;
     }
     return data;
 }
@@ -194,23 +183,23 @@ TEST(Syntax)
     }
     {
         PROCESS("\r\n\r\n\r\n\r\n\r\nGET / HTTP/1.1\r\n\r\n");
-        CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK")
+        CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK");
     }
     {
         PROCESS("   \t \t GET  \t\t   /pathpathpath  \t   \t HTTP/1.1 \t  \t     \t   \r\n\r\n");
-        CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK")
+        CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK");
     }
     {
         PROCESS("GET / HTTP/1.1\r\n\r\n");
-        CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK")
+        CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK");
     }
     {
         PROCESS("\r\nGET / HTTP/1.1\r\n\r\n");
-        CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK")
+        CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK");
     }
     {
         PROCESS("GET / HTTP/1.1111\r\n\r\n");
-        CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK")
+        CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK");
     }
     {
         PROCESS("GET / HTTP/1.11111\r\n\r\n");
@@ -223,6 +212,58 @@ TEST(Syntax)
     {
         PROCESS("GET / HTTP/11111.1\r\n\r\n");
         CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+    {
+        PROCESS("GET / HTTP/1,1\r\n\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+    {
+        PROCESS("GET / HTTF/1.1\r\n\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+    {
+        PROCESS("GET / HTTP/1.1\r\n A; B \r\n\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+    {
+        PROCESS("GET / HTTP/1.1\r\n Transfer-Encoding: chunked\r\n Transfer-Encoding: identity \r\n\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+    {
+        PROCESS("GET / HTTP/1.1\r\n Transfer-Encoding: chunked\r\n Content-Length: 10 \r\n\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+}
+
+TEST(Nobody)
+{
+    {
+        PROCESS("GET / HTTP/1.1\r\n Value: 0 \r\n\r\n");
+        CHECK(info.code == 200) CHECK(info.body == "Hello") CHECK(info.phrase == "OK");
+    }
+    {
+        PROCESS("HEAD / HTTP/1.1\r\n Value: 0 \r\n\r\n");
+        CHECK(info.code == 200) CHECK(info.body.empty()) CHECK(info.phrase == "OK");
+    }
+    {
+        PROCESS("GET / HTTP/1.1\r\n Value: 1 \r\n\r\n");
+        CHECK(info.code == 100) CHECK(info.body.empty()) CHECK(info.phrase == "Continue");
+    }
+    {
+        PROCESS("GET / HTTP/1.1\r\n Value: 2 \r\n\r\n");
+        CHECK(info.code == 101) CHECK(info.body.empty()) CHECK(info.phrase == "Switching Protocols");
+    }
+    {
+        PROCESS("GET / HTTP/1.1\r\n Value: 3 \r\n\r\n");
+        CHECK(info.code == 102) CHECK(info.body.empty()) CHECK(info.phrase == "Processing");
+    }
+    {
+        PROCESS("GET / HTTP/1.1\r\n Value: 4 \r\n\r\n");
+        CHECK(info.code == 204) CHECK(info.body.empty()) CHECK(info.phrase == "No Content");
+    }
+    {
+        PROCESS("GET / HTTP/1.1\r\n Value: 5 \r\n\r\n");
+        CHECK(info.code == 304) CHECK(info.body.empty()) CHECK(info.phrase == "Not Modified");
     }
 }
 
@@ -255,6 +296,39 @@ TEST(Chunk)
         PROCESS("POST / HTTP/1.1 \r\n Transfer-Encoding:chunked \r\n\r\n5\r\n12345\r\n3\r\n123\r\n1\r\n1\r\n0\r\n\r\n");
         CHECK(info.code == 200) CHECK(info.body == "123451231") CHECK(info.phrase == "OK");
     }
+    {
+        PROCESS("POST / HTTP/1.1 \r\n Transfer-Encoding:chunked \r\n\r\nAAAAAAAAAAAAAAAAAAAA\r\n");
+        CHECK(info.code == 400) CHECK(info.body.empty()) CHECK(info.phrase == "Bad Request");
+    }
+    {
+        PROCESS(
+            "POST / HTTP/1.1 \r\n Transfer-Encoding:identity,    \t \t  \t   chunked "
+            "\r\n\r\nf\r\n000000000000000\r\n0\r\n\r\n");
+        CHECK(info.code == 200) CHECK(info.body == "000000000000000") CHECK(info.phrase == "OK");
+    }
+    {
+        PROCESS("POST / HTTP/1.1 \r\n Transfer-Encoding:chunked \r\n\r\nF\r\n000000000000000\r\n0\r\n\r\n");
+        CHECK(info.code == 200) CHECK(info.body == "000000000000000") CHECK(info.phrase == "OK");
+    }
+    {
+        PROCESS(
+            "POST / HTTP/1.1 \r\n Transfer-Encoding:chunked \r\n\r\n"
+            "F\r\n000000000000000\r\n0\r\n A: B \r\n C: D \r\n\r\n");
+        CHECK(info.code == 200) CHECK(info.body == "000000000000000") CHECK(info.phrase == "OK");
+        CHECK(info.header["A"] == "B") CHECK(info.header["C"] == "D");
+    }
+}
+
+TEST(File)
+{
+    {
+        PROCESS("GET / HTTP/1.0 \r\n\r\n");
+        CHECK(info.code == 200) CHECK(info.body == "Hello") CHECK(info.phrase == "OK");
+    }
+    {
+        PROCESS("GET / HTTP/1.1 \r\n\r\n");
+        CHECK(info.code == 200) CHECK(info.body == "5\r\nHello\r\n0\r\n\r\n") CHECK(info.phrase == "OK");
+    }
 }
 
 void handler(Neyn::Request &request, Neyn::Response &response)
@@ -265,6 +339,29 @@ void handler(Neyn::Request &request, Neyn::Response &response)
         response.header = request.header;
         response.header["major"] = to_string(request.major);
         response.header["minor"] = to_string(request.minor);
+    }
+    else if (H::Current == "Nobody")
+    {
+        response.body = "Hello";
+        auto value = stoi(request.header["Value"]);
+
+        if (value == 1)
+            response.status = Neyn::Status::Continue;
+        else if (value == 2)
+            response.status = Neyn::Status::SwitchingProtocols;
+        else if (value == 3)
+            response.status = Neyn::Status::Processing;
+        else if (value == 4)
+            response.status = Neyn::Status::NoContent;
+        else if (value == 5)
+            response.status = Neyn::Status::NotModified;
+    }
+    else if (H::Current == "File")
+    {
+        ofstream file("temp");
+        file << "Hello";
+        file.close();
+        response.file = fopen("temp", "rb");
     }
     else
     {
@@ -288,9 +385,11 @@ int main()
 
     cout << SEPARATOR << "Running Tests..." << endl << SEPARATOR;
     SyntaxTest();
+    NobodyTest();
     GetTest();
     PostTest();
     ChunkTest();
+    FileTest();
     cout << "Tests Done!" << endl << SEPARATOR;
 
     usleep(1000);

@@ -5,7 +5,7 @@
 using namespace std;
 using namespace Neyn;
 
-void handler(Request &request, Response &response) { cout << request << endl; }
+void handler(Request &request, Response &response) { response.body = "Hello"; }
 
 int main()
 {
