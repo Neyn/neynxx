@@ -147,6 +147,7 @@ struct Server
 
     Server(Handler handler = {}, Config config = {});
     Error run(bool block = true);
+    Error single();
     void kill();
 };
 

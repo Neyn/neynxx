@@ -62,24 +62,35 @@ void handler(const neyn_request *_request, neyn_response *_response, void *data)
 
 Server::Server(Handler handler, Config config) : data(nullptr), config(std::move(config)), handler(handler) {}
 
+void init(Server *dis, neyn_server *server)
+{
+    server->data = dis;
+    server->handler = Neyn::handler;
+    server->config.ipvn = neyn_address(dis->config.ipvn);
+    server->config.port = dis->config.port;
+    server->config.address = (char *)dis->config.address.data();
+    server->config.timeout = dis->config.timeout;
+    server->config.limit = dis->config.limit;
+    server->config.threads = dis->config.threads;
+}
+
 Error Server::run(bool block)
 {
     if (config.threads == 0) config.threads = std::thread::hardware_concurrency();
     auto server = new neyn_server;
     data = server;
-    server->data = this;
-    server->handler = Neyn::handler;
-
-    server->config.ipvn = neyn_address(config.ipvn);
-    server->config.port = config.port;
-    server->config.address = (char *)config.address.data();
-    server->config.timeout = config.timeout;
-    server->config.limit = config.limit;
-    server->config.threads = config.threads;
+    init(this, server);
 
     auto error = Error(neyn_server_run(server, block));
     if (block || error != Error::None) delete server;
     return error;
+}
+
+Error Server::single()
+{
+    neyn_server server;
+    init(this, &server);
+    return Error(neyn_single_run(&server));
 }
 
 void Server::kill()
