@@ -45,7 +45,7 @@
     auto fd = H::create();      \
     CHECK(fd >= 0);             \
     CHECK(H::write(fd, input)); \
-    /*shutdown(fd, SHUT_WR);*/  \
+    shutdown(fd, SHUT_WR);      \
     auto data = H::read(fd);    \
     auto info = H::parse(data);
 
