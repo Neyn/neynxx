@@ -13,7 +13,7 @@ endif()
 
 set(NEYN_VERSION ${PROJECT_VERSION} CACHE INTERNAL "")
 set(NEYN_LIBRARIES "neyn" CACHE INTERNAL "")
-set(NEYN_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/"
+set(NEYN_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src/"
     "${CMAKE_CURRENT_BINARY_DIR}/gen/" CACHE INTERNAL "")
 
 option(NEYN_BUILD_LIB "Build Neyn C++ Library" ON)
@@ -37,7 +37,7 @@ if(NEYN_BUILD_LIB)
     add_library(neyn ${SOURCES})
     target_link_libraries(neyn PUBLIC pthread)
     target_include_directories(neyn PUBLIC
-        "$<BUILD_INTERFACE:${CNEYN_INCLUDE_DIR}/>"
+        "$<BUILD_INTERFACE:${CNEYN_INCLUDE_DIRS}/>"
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/>"
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gen/>"
         "$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/>")
