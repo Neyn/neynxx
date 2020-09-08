@@ -14,7 +14,7 @@ struct Filer
     std::string base, root;
     Handler notpath, notfound;
 
-    Filer(const std::string &base, const std::string &root);
+    Filer(const std::string &base = {}, const std::string &root = {});
     void operator()(Request &request, Response &response);
 };
 }  // namespace Neyn
