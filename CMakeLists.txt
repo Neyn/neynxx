@@ -24,8 +24,7 @@ configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/neyn/config.h.in"
     "${CMAKE_CURRENT_BINARY_DIR}/gen/neyn/config.h")
 file(GLOB HEADERS
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/neyn/neyn.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/neyn/server.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/neyn/*.h"
     "${CMAKE_CURRENT_BINARY_DIR}/gen/neyn/config.h")
 file(GLOB SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/neyn/*.h"

@@ -42,6 +42,7 @@ void handler(const neyn_request *_request, neyn_response *_response, void *data)
 
     _response->status = neyn_status(response.status);
     _response->file = response.file;
+    _response->fsize = response.fsize;
     _response->body.len = response.body.size();
     _response->body.ptr = (char *)response.body.data();
 
@@ -60,7 +61,7 @@ void handler(const neyn_request *_request, neyn_response *_response, void *data)
     neyn_response_write(_request, _response);
 }
 
-Server::Server(Handler handler, Config config) : data(nullptr), config(std::move(config)), handler(handler) {}
+Server::Server(Config config, Handler handler) : config(std::move(config)), handler(handler), data(nullptr) {}
 
 void init(Server *dis, neyn_server *server)
 {
@@ -100,41 +101,12 @@ void Server::kill()
     delete server;
 }
 
-std::string ws = "    ";
-
-std::ostream &operator<<(std::ostream &os, const Config &config)
+bool Response::open(const std::string &path)
 {
-    os << "Config:" << std::endl;
-    os << ws << "Port -> " << config.port << std::endl;
-    os << ws << "Address -> " << config.address << std::endl;
-    os << ws << "Timeout -> " << config.timeout << std::endl;
-    os << ws << "Limit -> " << config.limit << std::endl;
-    os << ws << "Threads -> " << config.threads << std::endl;
-    return os;
-}
-
-std::ostream &operator<<(std::ostream &os, const Request &request)
-{
-    os << "Request:" << std::endl;
-    os << ws << "Address -> " << request.address << std::endl;
-    os << ws << "Port -> " << request.port << std::endl;
-    os << ws << "Major -> " << request.major << std::endl;
-    os << ws << "Minor -> " << request.minor << std::endl;
-    os << ws << "Method -> " << request.method << std::endl;
-    os << ws << "Path -> " << request.path << std::endl;
-    os << ws << "Headers:" << std::endl;
-    for (const auto &pair : request.header) os << ws << ws << pair.first << " -> " << pair.second << std::endl;
-    if (!request.body.empty()) os << ws << "Body -> " << request.body << std::endl;
-    return os;
-}
-
-std::ostream &operator<<(std::ostream &os, const Response &response)
-{
-    os << "Response:" << std::endl;
-    os << ws << "Status -> " << neyn_status_code[int(response.status)] << std::endl;
-    os << ws << "Headers:" << std::endl;
-    for (const auto &pair : response.header) os << ws << ws << pair.first << " -> " << pair.second << std::endl;
-    if (!response.body.empty()) os << ws << "Body -> " << response.body << std::endl;
-    return os;
+    neyn_size size;
+    if (file != nullptr) fclose(file);
+    file = neyn_file_open(path.c_str(), &size);
+    if (file != nullptr) fsize = size;
+    return file != nullptr;
 }
 }  // namespace Neyn

@@ -3,25 +3,11 @@
 #include <neyn/config.h>
 
 #include <functional>
-#include <iostream>
 #include <map>
 #include <string>
 
 namespace Neyn
 {
-template <typename T>
-void print(const T &value)
-{
-    std::cout << value << " " << std::endl;
-}
-template <typename Head, typename... Tail>
-void print(const Head &head, Tail &&... tail)
-{
-    std::cout << head << " ";
-    print(std::forward<Tail>(tail)...);
-}
-inline void print() { std::cout << std::endl; }
-
 enum class Error
 {
     None,
@@ -125,8 +111,11 @@ struct Response
 {
     Status status = Status::OK;
     std::string body;
-    FILE *file = NULL;
     std::map<std::string, std::string> header;
+
+    size_t fsize = 0;
+    FILE *file = NULL;
+    bool open(const std::string &path);
 };
 
 struct Config
@@ -141,17 +130,15 @@ struct Server
 {
     using Handler = std::function<void(Request &, Response &)>;
 
-    void *data;
     Config config;
     Handler handler;
 
-    Server(Handler handler = {}, Config config = {});
+    Server(Config config = {}, Handler handler = {});
     Error run(bool block = true);
     Error single();
     void kill();
-};
 
-std::ostream &operator<<(std::ostream &os, const Config &config);
-std::ostream &operator<<(std::ostream &os, const Request &request);
-std::ostream &operator<<(std::ostream &os, const Response &response);
+private:
+    void *data;
+};
 }  // namespace Neyn

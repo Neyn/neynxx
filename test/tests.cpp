@@ -322,13 +322,18 @@ TEST(Chunk)
 TEST(File)
 {
     {
+        PROCESS("GET / HTTP/0.9 \r\n\r\n");
+        CHECK(info.code == 200) CHECK(info.body == "Hello") CHECK(info.phrase == "OK");
+    }
+    {
         PROCESS("GET / HTTP/1.0 \r\n\r\n");
         CHECK(info.code == 200) CHECK(info.body == "Hello") CHECK(info.phrase == "OK");
     }
     {
         PROCESS("GET / HTTP/1.1 \r\n\r\n");
-        CHECK(info.code == 200) CHECK(info.body == "5\r\nHello\r\n0\r\n\r\n") CHECK(info.phrase == "OK");
+        CHECK(info.code == 200) CHECK(info.body == "Hello") CHECK(info.phrase == "OK");
     }
+    // TODO test actual chunked
 }
 
 void handler(Neyn::Request &request, Neyn::Response &response)
@@ -361,7 +366,7 @@ void handler(Neyn::Request &request, Neyn::Response &response)
         ofstream file("temp");
         file << "Hello";
         file.close();
-        response.file = fopen("temp", "rb");
+        response.open("temp");
     }
     else
     {

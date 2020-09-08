@@ -10,7 +10,8 @@ void handler(Request &request, Response &response) { response.body = "Hello"; }
 int main()
 {
     Server server;
-    server.handler = handler;
+    Filer filer("/", "/home/shahriar/");
+    server.handler = filer;
     auto error = server.run();
     cout << int(error) << endl;
     return 0;
