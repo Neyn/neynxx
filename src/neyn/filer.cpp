@@ -4,18 +4,17 @@ namespace Neyn
 {
 Filer::Filer(const std::string &base, const std::string &root) : base(base), root(root)
 {
-    notfound = [](Request &, Response &response) { response.status = Status::NotFound; };
-    notpath = [](Request &, Response &response) { response.status = Status::BadRequest; };
+    error = [](Request &, Response &response) { response.status = Status::NotFound; };
 }
 
 void Filer::operator()(Request &request, Response &response)
 {
     auto path = request.path;
     if (path.size() < base.size() || !std::equal(base.begin(), base.end(), path.begin()))
-        return notpath(request, response);
+        return error(request, response);
 
     path = root + path.substr(base.size());
-    if (!response.open(path)) return notfound(request, response);
+    if (!response.open(path)) return error(request, response);
 
     // TODO set headers
 }
