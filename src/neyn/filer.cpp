@@ -14,7 +14,6 @@ void Filer::operator()(Request &request, Response &response)
         return error(request, response);
 
     path = root + path.substr(base.size());
-    std::cout << "Path: " << request.path << ", File: " << path << std::endl;
     if (!response.open(path)) return error(request, response);
 
     // TODO set headers
