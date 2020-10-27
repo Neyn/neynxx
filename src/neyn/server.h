@@ -112,10 +112,11 @@ struct Response
     Status status = Status::OK;
     std::string body;
     std::map<std::string, std::string> header;
+    bool open(const std::string &path);
 
+protected:
     size_t fsize = 0;
     FILE *file = NULL;
-    bool open(const std::string &path);
 };
 
 struct Config
@@ -130,15 +131,15 @@ struct Server
 {
     using Handler = std::function<void(Request &, Response &)>;
 
+    Server(Config config = {}, Handler handler = {});
+    Error run(bool block = true);
+    void kill();
+
+protected:
+    void *data;
     Config config;
     Handler handler;
 
-    Server(Config config = {}, Handler handler = {});
-    Error run(bool block = true);
     Error single();
-    void kill();
-
-private:
-    void *data;
 };
 }  // namespace Neyn

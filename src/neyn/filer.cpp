@@ -2,9 +2,9 @@
 
 namespace Neyn
 {
-Filer::Filer(const std::string &base, const std::string &root) : base(base), root(root)
+Filer::Filer(const std::string &base, const std::string &root, Handler error) : error(error), base(base), root(root)
 {
-    error = [](Request &, Response &response) { response.status = Status::NotFound; };
+    if (!this->error) this->error = [](Request &, Response &response) { response.status = Status::NotFound; };
 }
 
 void Filer::operator()(Request &request, Response &response)

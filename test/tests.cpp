@@ -377,8 +377,7 @@ void handler(Neyn::Request &request, Neyn::Response &response)
 
 int main()
 {
-    Neyn::Server server;
-    server.handler = handler;
+    Neyn::Server server({}, handler);
     auto error = server.run(false);
     usleep(1000);
 

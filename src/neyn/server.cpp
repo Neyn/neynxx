@@ -10,10 +10,21 @@ extern "C" {
 
 namespace Neyn
 {
+struct Response_ : Response
+{
+    using Response::file;
+    using Response::fsize;
+};
+struct Server_ : Server
+{
+    using Server::config;
+    using Server::handler;
+};
+
 void handler(const neyn_request *_request, neyn_response *_response, void *data)
 {
     size_t i = 0;
-    auto server = static_cast<Server *>(data);
+    auto server = static_cast<Server_ *>(data);
 
     Request request;
     request.port = _request->port;
@@ -34,12 +45,13 @@ void handler(const neyn_request *_request, neyn_response *_response, void *data)
         _value += _value.empty() ? value : "," + value;
     }
 
-    Response response;
+    Response response_;
     // clang-format off
-    try { server->handler(request, response); }
-    catch (Status status) { response.status = status; }
+    try { server->handler(request, response_); }
+    catch (Status status) { response_.status = status; }
     // clang-format on
 
+    Response_ &response = static_cast<Response_ &>(response_);
     _response->status = neyn_status(response.status);
     _response->file = response.file;
     _response->fsize = response.fsize;
@@ -61,10 +73,11 @@ void handler(const neyn_request *_request, neyn_response *_response, void *data)
     neyn_response_write(_request, _response);
 }
 
-Server::Server(Config config, Handler handler) : config(std::move(config)), handler(handler), data(nullptr) {}
+Server::Server(Config config, Handler handler) : data(nullptr), config(std::move(config)), handler(handler) {}
 
-void init(Server *dis, neyn_server *server)
+void init(Server *dis_, neyn_server *server)
 {
+    Server_ *dis = static_cast<Server_ *>(dis_);
     server->data = dis;
     server->handler = Neyn::handler;
     server->config.ipvn = neyn_address(dis->config.ipvn);

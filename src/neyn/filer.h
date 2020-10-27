@@ -11,10 +11,13 @@ struct Filer
 {
     using Handler = std::function<void(Request &, Response &)>;
 
-    std::string base, root;
-    Handler error;
-
-    Filer(const std::string &base = {}, const std::string &root = {});
+    Filer(const std::string &base = {}, const std::string &root = {}, Handler error = {});
     void operator()(Request &request, Response &response);
+
+private:
+    Handler error;
+    std::string base, root;
+
+    friend std::ostream &operator<<(std::ostream &os, const Filer &filer);
 };
 }  // namespace Neyn
