@@ -73,7 +73,7 @@ The library's interface exists in ```Neyn``` namespace.
 
 ## Configuring
 + Port: port number of the server.
-+ IP Version: it can be ```Address::IPV4``` or ```Address::IPV6```.
++ IP Version: it can be ```Neyn::Address::IPV4``` or ```Neyn::Address::IPV6```.
 + Timeout: server in milliseconds. set 0 for no timeout.
 + Limit: request size limit in bytes. set 0 for no limit.
 + Threads: number of threads. set 0 for automatic detection.
