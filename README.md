@@ -13,7 +13,7 @@
 - [License](#license)
 
 # Neynxx
-```Neynxx``` is a fast Http library written in C++. You can checkout [C](https://github.com/Neyn/cneyn) and [Python](https://github.com/Neyn/neynpy) interfaces and [JSON](https://github.com/Neyn/neyson) library too. Some of the features:
+```Neynxx``` is a fast Http library with C++ interface. You can checkout [C](https://github.com/Neyn/cneyn) and [Python](https://github.com/Neyn/neynpy) interfaces and [JSON](https://github.com/Neyn/neyson) library too. Some of the features:
 
 + Fast
 + Very Easy to Use
